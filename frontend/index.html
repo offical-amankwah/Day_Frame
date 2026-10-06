@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Dayframe — Task planner</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d0f13;
+      --pane: #13161b;
+      --pane-raised: #171a20;
+      --surface: #1b1f26;
+      --surface-hover: #222731;
+      --line: rgba(255, 255, 255, .075);
+      --line-strong: rgba(255, 255, 255, .12);
+      --text: #edf0f5;
+      --muted: #9198a5;
+      --subtle: #676f7d;
+      --violet: #a994ff;
+      --mint: #74d9b3;
+      --blue: #84b8ff;
+      --amber: #f4c779;
+      --hour-height: 72px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      min-width: 360px;
+      font-size: 14px;
+    }
+
+    button,
+    input {
+      color: inherit;
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 30% 70%;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* Inbox — fixed-width-feeling 30% pane, with its own task-list scroller. */
+    .inbox-pane {
+      display: flex;
+      min-width: 0;
+      min-height: 0;
+      flex-direction: column;
+      padding: 25px 22px 18px;
+      overflow: hidden;
+      background: var(--pane);
+      border-right: 1px solid var(--line);
+    }
+
+    .brand-row,
+    .section-heading,
+    .list-heading,
+    .schedule-toolbar,
+    .date-controls,
+    .timeline-heading,
+    .task-meta,
+    .event-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-row {
+      min-height: 30px;
+      margin-bottom: 35px;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #f3f3f6;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .16em;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 27px;
+      height: 27px;
+      place-items: center;
+      border: 1px solid rgba(169, 148, 255, .35);
+      border-radius: 9px;
+      background: linear-gradient(145deg, rgba(169, 148, 255, .2), rgba(116, 217, 179, .08));
+      color: var(--violet);
+    }
+
+    .local-badge {
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .13em;
+    }
+
+    .section-heading {
+      align-items: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--subtle);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    .section-heading h1 {
+      margin: 0;
+      font-size: 25px;
+      font-weight: 650;
+      letter-spacing: -.04em;
+    }
+
+    .task-count {
+      display: inline-grid;
+      min-width: 27px;
+      height: 25px;
+      padding: 0 7px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #c5c9d2;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .quick-entry {
+      display: flex;
+      min-height: 49px;
+      align-items: center;
+      gap: 11px;
+      padding: 0 8px 0 14px;
+      border: 1px solid rgba(169, 148, 255, .42);
+      border-radius: 12px;
+      background: #1b1d26;
+      box-shadow: 0 0 0 3px rgba(169, 148, 255, .055), 0 8px 25px rgba(0, 0, 0, .12);
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .quick-entry:focus-within {
+      border-color: var(--violet);
+      box-shadow: 0 0 0 3px rgba(169, 148, 255, .12);
+    }
+
+    .quick-entry svg {
+      flex: 0 0 auto;
+      color: #aaa1c7;
+    }
+
+    .quick-entry input {
+      width: 100%;
+      min-width: 0;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .quick-entry input::placeholder {
+      color: #858b98;
+      opacity: 1;
+    }
+
+    .add-button {
+      display: grid;
+      width: 31px;
+      height: 31px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 0;
+      border-radius: 9px;
+      background: #a994ff;
+      color: #171322;
+      transition: background .18s ease, transform .18s ease;
+    }
+
+    .add-button:hover {
+      transform: translateY(-1px);
+      background: #bdadff;
+    }
+
+    .entry-actions {
+      display: flex;
+      min-height: 37px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 3px 1px 0;
+    }
+
+    .entry-hint {
+      color: var(--subtle);
+      font-size: 10px;
+    }
+
+    .ai-button {
+      display: inline-flex;
+      min-height: 29px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 9px;
+      border: 1px solid rgba(169, 148, 255, .22);
+      border-radius: 8px;
+      background: rgba(169, 148, 255, .08);
+      color: #c9bcff;
+      font-size: 10px;
+      font-weight: 620;
+      transition: background .18s ease, border-color .18s ease;
+    }
+
+    .ai-button:hover:not(:disabled) {
+      border-color: rgba(169, 148, 255, .5);
+      background: rgba(169, 148, 255, .15);
+    }
+
+    .ai-button:disabled,
+    .add-button:disabled {
+      cursor: wait;
+      opacity: .55;
+    }
+
+    .agent-response {
+      max-height: 112px;
+      margin: 7px 0 0;
+      padding: 10px 12px;
+      overflow: auto;
+      border: 1px solid rgba(169, 148, 255, .2);
+      border-radius: 9px;
+      background: rgba(169, 148, 255, .055);
+      color: #d5cfff;
+      font-size: 11px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .agent-response[hidden] {
+      display: none;
+    }
+
+    .list-heading {
+      margin: 28px 1px 12px;
+      color: #c9cdd5;
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: .02em;
+    }
+
+    .list-heading span:last-child {
+      color: var(--subtle);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .inbox-list {
+      min-height: 0;
+      flex: 1;
+      margin: 0 -7px;
+      padding: 0 7px 14px;
+      overflow: auto;
+      list-style: none;
+      scrollbar-color: #343943 transparent;
+      scrollbar-width: thin;
+    }
+
+    .inbox-task {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+      padding: 13px 11px 12px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      background: var(--pane-raised);
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+
+    .inbox-task:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      background: var(--surface-hover);
+    }
+
+    .empty-inbox {
+      margin-top: 18px;
+      padding: 18px 14px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 10px;
+      color: #818997;
+      font-size: 11px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+    .task-check {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      margin-top: 2px;
+      border: 1px solid #626a78;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, .015);
+    }
+
+    .task-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .task-copy h3 {
+      margin: 0 0 9px;
+      overflow: hidden;
+      color: #e2e5eb;
+      font-size: 12px;
+      font-weight: 560;
+      line-height: 1.45;
+      text-overflow: ellipsis;
+    }
+
+    .task-meta {
+      justify-content: flex-start;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .category-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .category-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--violet);
+    }
+
+    .category-dot.mint { background: var(--mint); }
+    .category-dot.blue { background: var(--blue); }
+    .category-dot.amber { background: var(--amber); }
+
+    .task-meta .separator {
+      color: #4e5561;
+    }
+
+    .task-options,
+    .icon-button {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #77808d;
+    }
+
+    .task-options:hover,
+    .icon-button:hover {
+      background: rgba(255, 255, 255, .06);
+      color: var(--text);
+    }
+
+    .inbox-footer {
+      display: flex;
+      min-height: 34px;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 2px 0;
+      border-top: 1px solid var(--line);
+      color: var(--subtle);
+      font-size: 10px;
+    }
+
+    .footer-sparkle {
+      color: var(--violet);
+      font-size: 13px;
+    }
+
+    #app-status {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #app-status.is-error {
+      color: #ed9a9a;
+    }
+
+    /* Schedule — the top controls stay put while the 12-hour canvas scrolls. */
+    .schedule-pane {
+      display: flex;
+      min-width: 0;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .schedule-toolbar {
+      min-height: 113px;
+      flex: 0 0 auto;
+      padding: 25px 34px 21px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .schedule-title .eyebrow {
+      margin-bottom: 8px;
+    }
+
+    .schedule-title h1 {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin: 0;
+      font-size: 23px;
+      font-weight: 620;
+      letter-spacing: -.04em;
+    }
+
+    .schedule-title h1 .day-label {
+      color: var(--text);
+      font-size: 23px;
+      font-weight: 620;
+      letter-spacing: -.04em;
+    }
+
+    .schedule-title h1 .day-date {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 450;
+      letter-spacing: 0;
+    }
+
+    .date-controls {
+      gap: 8px;
+    }
+
+    .today-button,
+    .nav-button {
+      display: inline-flex;
+      height: 34px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: #16191f;
+      color: #cbd0d9;
+      font-size: 11px;
+      font-weight: 550;
+      transition: border-color .18s ease, background .18s ease;
+    }
+
+    .today-button {
+      padding: 0 11px;
+      margin-right: 4px;
+    }
+
+    .nav-button {
+      width: 34px;
+      padding: 0;
+      color: #9aa1ad;
+    }
+
+    .today-button:hover,
+    .nav-button:hover {
+      border-color: #555d6b;
+      background: #20242c;
+    }
+
+    .schedule-scroll {
+      min-height: 0;
+      flex: 1;
+      padding: 23px 34px 34px;
+      overflow: auto;
+      scrollbar-color: #343943 transparent;
+      scrollbar-width: thin;
+    }
+
+    .timeline-heading {
+      min-height: 28px;
+      margin: 0 0 13px;
+      padding: 0 2px 0 78px;
+      color: var(--subtle);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .timeline-heading .day-length {
+      color: #69717e;
+      font-size: 9px;
+      font-weight: 550;
+      letter-spacing: .08em;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: 78px minmax(0, 1fr);
+      min-width: 0;
+      align-items: stretch;
+    }
+
+    .time-rail {
+      position: relative;
+      display: grid;
+      grid-template-rows: repeat(12, var(--hour-height));
+      min-height: 0;
+      padding-right: 14px;
+    }
+
+    .time-label {
+      position: relative;
+      top: -7px;
+      color: #747c89;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .time-label:first-child {
+      top: 0;
+    }
+
+    .time-label-end {
+      position: absolute;
+      top: auto;
+      bottom: -7px;
+      left: 0;
+    }
+
+    .day-grid {
+      position: relative;
+      display: grid;
+      grid-template-rows: repeat(12, var(--hour-height));
+      min-width: 0;
+      border-left: 1px solid rgba(255, 255, 255, .045);
+    }
+
+    .hour-row {
+      border-top: 1px solid var(--line);
+    }
+
+    .day-grid::after {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      border-bottom: 1px solid var(--line);
+      content: "";
+    }
+
+    .calendar-event {
+      position: absolute;
+      z-index: 1;
+      right: 18px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 7px;
+      overflow: hidden;
+      padding: 10px 14px;
+      border: 1px solid rgba(169, 148, 255, .16);
+      border-left: 3px solid var(--event-accent, var(--violet));
+      border-radius: 10px;
+      background: var(--event-bg, rgba(169, 148, 255, .1));
+      box-shadow: 0 7px 16px rgba(0, 0, 0, .1);
+    }
+
+    .calendar-event h2 {
+      margin: 0;
+      overflow: hidden;
+      color: #eeeafc;
+      font-size: 12px;
+      font-weight: 620;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .event-topline {
+      justify-content: flex-start;
+      gap: 7px;
+      color: #b7adcF;
+      font-size: 9px;
+      font-weight: 620;
+      letter-spacing: .025em;
+    }
+
+    .event-dot {
+      width: 5px;
+      height: 5px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--event-accent, var(--violet));
+    }
+
+    .event-detail {
+      color: rgba(226, 224, 240, .62);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .event-color-0 {
+      --event-accent: var(--violet);
+      --event-bg: linear-gradient(110deg, rgba(169, 148, 255, .15), rgba(169, 148, 255, .075));
+    }
+
+    .event-color-1 {
+      --event-accent: var(--blue);
+      --event-bg: linear-gradient(110deg, rgba(132, 184, 255, .14), rgba(132, 184, 255, .065));
+    }
+
+    .event-color-2 {
+      --event-accent: var(--mint);
+      --event-bg: linear-gradient(110deg, rgba(116, 217, 179, .14), rgba(116, 217, 179, .065));
+    }
+
+    .event-color-3 {
+      --event-accent: var(--amber);
+      --event-bg: linear-gradient(110deg, rgba(244, 199, 121, .14), rgba(244, 199, 121, .06));
+    }
+
+    .calendar-event.is-compact {
+      justify-content: flex-start;
+      gap: 3px;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+
+    .calendar-event.is-compact h2 {
+      font-size: 10px;
+    }
+
+    .calendar-event.is-compact .event-topline {
+      font-size: 8px;
+    }
+
+    .calendar-event.is-compact .event-detail {
+      display: none;
+    }
+
+    .schedule-empty {
+      position: absolute;
+      top: 20px;
+      right: 18px;
+      left: 16px;
+      margin: 0;
+      padding: 14px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 10px;
+      color: #858d9a;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .schedule-note {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 28px 0 0 78px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .018);
+      color: #828a97;
+      font-size: 10px;
+    }
+
+    .schedule-note svg {
+      flex: 0 0 auto;
+      color: var(--violet);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 900px) {
+      .inbox-pane {
+        padding-right: 17px;
+        padding-left: 17px;
+      }
+
+      .schedule-toolbar,
+      .schedule-scroll {
+        padding-right: 23px;
+        padding-left: 23px;
+      }
+
+      .schedule-title h1 {
+        flex-wrap: wrap;
+        gap: 5px 10px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app-shell {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(310px, 42dvh) minmax(620px, 1fr);
+        overflow: visible;
+      }
+
+      .inbox-pane {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand-row {
+        margin-bottom: 20px;
+      }
+
+      .section-heading {
+        margin-bottom: 14px;
+      }
+
+      .list-heading {
+        margin-top: 19px;
+      }
+
+      .schedule-pane {
+        min-height: 620px;
+      }
+
+      .schedule-toolbar {
+        min-height: 100px;
+        padding: 20px 18px 17px;
+      }
+
+      .schedule-scroll {
+        padding: 18px 18px 30px;
+      }
+
+      .timeline {
+        grid-template-columns: 66px minmax(0, 1fr);
+      }
+
+      .timeline-heading {
+        padding-left: 66px;
+      }
+
+      .schedule-note {
+        margin-left: 66px;
+      }
+
+      .calendar-event {
+        right: 8px;
+        left: 9px;
+        padding-right: 8px;
+        padding-left: 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="inbox-pane" aria-labelledby="inbox-title">
+      <header class="brand-row">
+        <div class="brand-lockup" aria-label="Dayframe">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8.1 6.1 11 13 4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 1.5a6.5 6.5 0 1 0 6.5 6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".55"/>
+            </svg>
+          </span>
+          <span>DAYFRAME</span>
+        </div>
+        <span class="local-badge">LOCAL</span>
+      </header>
+
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Your workspace</p>
+          <h1 id="inbox-title">Inbox</h1>
+        </div>
+        <span class="task-count" id="inbox-count" aria-label="0 unassigned tasks">00</span>
+      </div>
+
+      <div class="quick-entry" role="group" aria-label="Quick task entry">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <label class="sr-only" for="quick-task">Add a task to your inbox</label>
+        <input id="quick-task" type="text" placeholder="Add a task to your inbox…" autocomplete="off">
+        <button class="add-button" id="add-task" type="button" aria-label="Add task">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 3.2v9.6M3.2 8h9.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="entry-actions">
+        <span class="entry-hint">↵ Enter to add</span>
+        <button class="ai-button" id="ai-assist" type="button">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="m8 1.6 1.25 4.05L13.3 7 9.25 8.3 8 12.4 6.75 8.3 2.7 7l4.05-1.35L8 1.6Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+            <path d="m12.5 10.5.55 1.45 1.45.55-1.45.55-.55 1.45-.55-1.45-1.45-.55 1.45-.55.55-1.45Z" fill="currentColor"/>
+          </svg>
+          <span>AI Assist</span>
+        </button>
+      </div>
+      <div class="agent-response" id="agent-response" aria-live="polite" hidden></div>
+
+      <div class="list-heading">
+        <span>Unassigned tasks</span>
+        <span>Newest first</span>
+      </div>
+
+      <ul class="inbox-list" id="inbox-list" aria-label="Unassigned tasks"></ul>
+      <footer class="inbox-footer">
+        <span class="footer-sparkle" aria-hidden="true">✳</span>
+        <span id="app-status" role="status" aria-live="polite">Ready to plan.</span>
+      </footer>
+    </aside>
+
+    <section class="schedule-pane" aria-labelledby="schedule-title">
+      <header class="schedule-toolbar">
+        <div class="schedule-title">
+          <p class="eyebrow">My day</p>
+          <h1 id="schedule-title"><span class="day-label" id="day-label">Today</span><span class="day-date" id="schedule-date"></span></h1>
+        </div>
+        <nav class="date-controls" aria-label="Schedule date controls">
+          <button class="today-button" id="today-button" type="button">Today</button>
+          <button class="nav-button" id="previous-day" type="button" aria-label="Previous day">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m10 3.5-4.5 4.5L10 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="nav-button" id="next-day" type="button" aria-label="Next day">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m6 3.5 4.5 4.5L6 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </nav>
+      </header>
+
+      <div class="schedule-scroll">
+        <div class="timeline-heading">
+          <span>Daily timeline</span>
+          <span class="day-length">12 HOURS</span>
+        </div>
+
+        <div class="timeline" aria-label="Schedule from 8:00 AM to 8:00 PM">
+          <div class="time-rail" aria-hidden="true">
+            <span class="time-label">8:00 AM</span>
+            <span class="time-label">9:00 AM</span>
+            <span class="time-label">10:00 AM</span>
+            <span class="time-label">11:00 AM</span>
+            <span class="time-label">12:00 PM</span>
+            <span class="time-label">1:00 PM</span>
+            <span class="time-label">2:00 PM</span>
+            <span class="time-label">3:00 PM</span>
+            <span class="time-label">4:00 PM</span>
+            <span class="time-label">5:00 PM</span>
+            <span class="time-label">6:00 PM</span>
+            <span class="time-label">7:00 PM</span>
+            <span class="time-label time-label-end">8:00 PM</span>
+          </div>
+
+          <div class="day-grid" id="day-grid" aria-label="Scheduled tasks">
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+            <div class="hour-row"></div>
+
+
+          </div>
+        </div>
+
+        <div class="schedule-note">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 1.8v2.1M8 12.1v2.1M1.8 8h2.1m8.2 0h2.1M3.6 3.6l1.5 1.5m5.8 5.8 1.5 1.5m0-8.8-1.5 1.5m-5.8 5.8-1.5 1.5" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+            <circle cx="8" cy="8" r="2.4" stroke="currentColor" stroke-width="1.15"/>
+          </svg>
+          <span>Leave a little room between tasks. Your day doesn't need to be completely full.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="./app.js" defer></script>
+</body>
+</html>
