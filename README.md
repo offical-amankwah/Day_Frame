@@ -1,4 +1,4 @@
-# Local Task Manager Backend
+# Day_Frame — Local Task Manager Backend
 
 A modular FastAPI backend backed by Python's built-in `sqlite3` module, with an optional Ollama agent. The database is named `productivity.db` and is created in this project directory by default. By default, prompts and task data go only to the local Ollama endpoint at `localhost`; setting `OLLAMA_URL` to another host is an explicit configuration choice.
 
