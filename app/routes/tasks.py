@@ -1,9 +1,9 @@
 """REST endpoints for task management."""
 
-from fastapi import APIRouter, HTTPException, Query, status as http_status
+from fastapi import APIRouter, HTTPException, Query, Response, status as http_status
 
 from app.repositories import task_repository
-from app.schemas import TaskCreate, TaskRead, TaskUpdate
+from app.schemas import TaskCreate, TaskPatch, TaskRead, TaskUpdate
 
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -53,3 +53,38 @@ def update_task(task_id: int, payload: TaskUpdate):
             detail=f"Task {task_id} not found",
         )
     return task
+
+
+@router.patch(
+    "/{task_id}",
+    response_model=TaskRead,
+    summary="Edit task details",
+)
+def edit_task(task_id: int, payload: TaskPatch):
+    """Partially update a task's title, category, or estimate."""
+    task = task_repository.edit_task(
+        task_id=task_id,
+        updates=payload.model_dump(exclude_unset=True),
+    )
+    if task is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"Task {task_id} not found",
+        )
+    return task
+
+
+@router.delete(
+    "/{task_id}",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    summary="Delete a task",
+)
+def delete_task(task_id: int):
+    """Permanently delete a task by id."""
+    deleted = task_repository.delete_task(task_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"Task {task_id} not found",
+        )
+    return Response(status_code=http_status.HTTP_204_NO_CONTENT)

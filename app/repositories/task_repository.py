@@ -289,3 +289,51 @@ def reschedule_task(task_id: int, scheduled_start: str) -> TaskRecord | None:
         raise
     finally:
         connection.close()
+
+
+def edit_task(task_id: int, updates: dict[str, Any]) -> TaskRecord | None:
+    """Update only editable task details; return None if the task is missing."""
+    allowed_fields = {"title", "category", "estimated_minutes"}
+    if not updates:
+        raise ValueError("At least one task field must be provided")
+    if updates.keys() - allowed_fields:
+        raise ValueError("An unsupported task field was provided")
+    if any(value is None for value in updates.values()):
+        raise ValueError("Task fields cannot be null")
+
+    assignments = ", ".join(f"{field} = ?" for field in updates)
+    values = tuple(updates.values()) + (task_id,)
+    connection = get_connection()
+    try:
+        cursor = connection.execute(
+            f"UPDATE tasks SET {assignments} WHERE id = ?", values
+        )
+        if cursor.rowcount == 0:
+            connection.rollback()
+            return None
+        connection.commit()
+        row = connection.execute(
+            "SELECT id, title, category, estimated_minutes, status, "
+            "scheduled_start, created_at FROM tasks WHERE id = ?",
+            (task_id,),
+        ).fetchone()
+        return _row_to_dict(row) if row is not None else None
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def delete_task(task_id: int) -> bool:
+    """Delete one task; return False when no task has that id."""
+    connection = get_connection()
+    try:
+        cursor = connection.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        connection.commit()
+        return cursor.rowcount > 0
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

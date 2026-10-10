@@ -68,6 +68,24 @@
       min-height: 0;
       overflow: hidden;
       background: var(--bg);
+      transition: grid-template-columns .22s ease;
+    }
+
+    .app-shell.focus-mode {
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+
+    .app-shell.focus-mode .inbox-pane {
+      min-width: 0;
+      padding: 0;
+      overflow: hidden;
+      visibility: hidden;
+      border: 0;
+    }
+
+    .app-shell.focus-mode .schedule-pane {
+      grid-column: 2;
+      width: 100%;
     }
 
     /* Inbox — fixed-width-feeling 30% pane, with its own task-list scroller. */
@@ -212,6 +230,63 @@
       opacity: 1;
     }
 
+    .quick-options {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 112px;
+      gap: 9px;
+      margin: 11px 1px 0;
+    }
+
+    .quick-field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .quick-field > span:first-child {
+      color: #858c98;
+      font-size: 9px;
+      font-weight: 650;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .quick-field input {
+      width: 100%;
+      height: 32px;
+      min-width: 0;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      outline: none;
+      background: #171a20;
+      color: #dce0e8;
+      font-size: 11px;
+    }
+
+    .quick-field input:focus {
+      border-color: rgba(169, 148, 255, .58);
+    }
+
+    .minutes-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .minutes-input-wrap input {
+      padding-right: 34px;
+    }
+
+    .minutes-input-wrap > span {
+      position: absolute;
+      right: 9px;
+      color: var(--subtle);
+      font-size: 9px;
+      pointer-events: none;
+    }
+
     .add-button {
       display: grid;
       width: 31px;
@@ -317,6 +392,7 @@
       display: flex;
       align-items: flex-start;
       gap: 12px;
+      cursor: grab;
       margin-bottom: 8px;
       padding: 13px 11px 12px;
       border: 1px solid transparent;
@@ -342,14 +418,78 @@
       text-align: center;
     }
 
+    .empty-inbox.is-error {
+      border-color: rgba(237, 154, 154, .28);
+      color: #e4a3a3;
+    }
+
+    .empty-inbox.is-loading {
+      border-style: solid;
+    }
+
+    .state-retry {
+      display: block;
+      margin: 10px auto 0;
+      padding: 5px 9px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .04);
+      color: #c7cbd4;
+      font-size: 10px;
+    }
+
+    .state-retry:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .state-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      flex: 0 0 auto;
+      margin-right: 7px;
+      border: 2px solid rgba(169, 148, 255, .2);
+      border-top-color: var(--violet);
+      border-radius: 50%;
+      vertical-align: -2px;
+      animation: state-spin .75s linear infinite;
+    }
+
+    @keyframes state-spin {
+      to { transform: rotate(360deg); }
+    }
+
     .task-check {
+      display: grid;
       width: 16px;
       height: 16px;
       flex: 0 0 auto;
+      place-items: center;
       margin-top: 2px;
+      padding: 0;
       border: 1px solid #626a78;
       border-radius: 5px;
       background: rgba(255, 255, 255, .015);
+      color: var(--mint);
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    .task-check svg {
+      width: 11px;
+      height: 11px;
+      opacity: 0;
+    }
+
+    .task-check:hover,
+    .task-check:focus-visible {
+      border-color: var(--mint);
+      background: rgba(116, 217, 179, .12);
+      outline: none;
+    }
+
+    .task-check:hover svg,
+    .task-check:focus-visible svg {
+      opacity: 1;
     }
 
     .task-copy {
@@ -395,23 +535,54 @@
       color: #4e5561;
     }
 
-    .task-options,
-    .icon-button {
-      display: grid;
-      width: 28px;
-      height: 28px;
+    .task-actions {
+      display: flex;
       flex: 0 0 auto;
-      place-items: center;
-      border: 0;
-      border-radius: 8px;
-      background: transparent;
-      color: #77808d;
+      align-items: center;
+      gap: 1px;
+      margin-left: auto;
     }
 
-    .task-options:hover,
-    .icon-button:hover {
-      background: rgba(255, 255, 255, .06);
+    .task-action {
+      display: grid;
+      width: 23px;
+      height: 23px;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #858d9a;
+      opacity: .75;
+      transition: background .15s ease, color .15s ease, opacity .15s ease;
+    }
+
+    .task-action svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .task-action:hover,
+    .task-action:focus-visible {
+      background: rgba(255, 255, 255, .08);
       color: var(--text);
+      opacity: 1;
+      outline: none;
+    }
+
+    .task-action--delete:hover,
+    .task-action--delete:focus-visible {
+      background: rgba(242, 120, 120, .12);
+      color: #ff9e9e;
+    }
+
+    .inbox-task .task-actions .task-action {
+      opacity: 0;
+    }
+
+    .inbox-task:hover .task-actions .task-action,
+    .inbox-task:focus-within .task-actions .task-action {
+      opacity: 1;
     }
 
     .inbox-footer {
@@ -489,6 +660,42 @@
       gap: 8px;
     }
 
+    .calendar-view-switch {
+      display: inline-flex;
+      height: 34px;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: #111318;
+    }
+
+    .calendar-view-button {
+      min-width: 42px;
+      height: 26px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #858c98;
+      font-size: 10px;
+      font-weight: 620;
+      transition: background .16s ease, color .16s ease;
+    }
+
+    .calendar-view-button[aria-pressed="true"] {
+      background: rgba(169, 148, 255, .18);
+      color: #e1d9ff;
+      box-shadow: inset 0 0 0 1px rgba(169, 148, 255, .18);
+    }
+
+    .calendar-view-button:hover:not([aria-pressed="true"]) {
+      background: rgba(255, 255, 255, .05);
+      color: #d7dbe3;
+    }
+
+    .focus-button,
     .today-button,
     .nav-button {
       display: inline-flex;
@@ -510,12 +717,29 @@
       margin-right: 4px;
     }
 
+    .focus-button {
+      padding: 0 10px;
+      border-color: rgba(169, 148, 255, .24);
+      color: #c9bcff;
+    }
+
+    .focus-button[aria-pressed="true"] {
+      border-color: rgba(169, 148, 255, .58);
+      background: rgba(169, 148, 255, .14);
+      color: #e1d9ff;
+    }
+
+    .focus-button svg {
+      flex: 0 0 auto;
+    }
+
     .nav-button {
       width: 34px;
       padding: 0;
       color: #9aa1ad;
     }
 
+    .focus-button:hover,
     .today-button:hover,
     .nav-button:hover {
       border-color: #555d6b;
@@ -606,9 +830,59 @@
       content: "";
     }
 
+    .day-grid.is-drop-target {
+      background: linear-gradient(90deg, rgba(169, 148, 255, .025), transparent 55%);
+    }
+
+    .drop-indicator {
+      position: absolute;
+      z-index: 8;
+      right: 0;
+      left: 0;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--violet);
+      box-shadow: 0 0 12px rgba(169, 148, 255, .75);
+      pointer-events: none;
+    }
+
+    .drop-indicator[hidden] {
+      display: none;
+    }
+
+    .drop-indicator::before {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--violet);
+      content: "";
+    }
+
+    .drop-time-label {
+      position: absolute;
+      top: -22px;
+      left: 8px;
+      padding: 4px 7px;
+      border: 1px solid rgba(169, 148, 255, .35);
+      border-radius: 6px;
+      background: #241f35;
+      color: #e5deff;
+      font-size: 9px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .inbox-task.is-dragging {
+      opacity: .35;
+    }
+
     .calendar-event {
       position: absolute;
       z-index: 1;
+      cursor: pointer;
       right: 18px;
       left: 16px;
       display: flex;
@@ -711,6 +985,17 @@
       line-height: 1.5;
     }
 
+    .schedule-empty.is-loading {
+      display: flex;
+      align-items: center;
+      border-style: solid;
+    }
+
+    .schedule-empty.is-error {
+      border-color: rgba(237, 154, 154, .3);
+      color: #e4a3a3;
+    }
+
     .schedule-note {
       display: flex;
       align-items: center;
@@ -729,6 +1014,332 @@
       color: var(--violet);
     }
 
+    .month-calendar-view[hidden],
+    .day-calendar-view[hidden] {
+      display: none !important;
+    }
+
+    .month-calendar-view {
+      min-width: 0;
+    }
+
+    .month-weekdays,
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .month-weekdays {
+      margin-bottom: 8px;
+    }
+
+    .month-weekdays span {
+      padding: 3px 10px;
+      color: #7e8693;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .month-grid {
+      grid-auto-rows: minmax(112px, auto);
+    }
+
+    .month-day {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 9px 9px 7px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .018);
+      color: var(--text);
+      text-align: left;
+      transition: border-color .15s ease, background .15s ease, transform .15s ease;
+    }
+
+    .month-day:hover {
+      transform: translateY(-1px);
+      border-color: rgba(169, 148, 255, .34);
+      background: rgba(169, 148, 255, .055);
+    }
+
+    .month-day.is-selected {
+      border-color: rgba(169, 148, 255, .48);
+      background: rgba(169, 148, 255, .065);
+      box-shadow: inset 0 0 0 1px rgba(169, 148, 255, .1);
+    }
+
+    .month-day.is-outside {
+      background: rgba(255, 255, 255, .008);
+      color: #606875;
+    }
+
+    .month-day-number {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 8px;
+      color: #bcc2cd;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .month-day.is-outside .month-day-number {
+      color: #606875;
+    }
+
+    .month-day.is-today .month-day-number {
+      background: var(--violet);
+      color: #171322;
+      font-weight: 750;
+    }
+
+    .month-day-events {
+      display: grid;
+      min-width: 0;
+      gap: 4px;
+      margin-top: 5px;
+    }
+
+    .month-event {
+      display: block;
+      min-width: 0;
+      padding: 4px 6px;
+      overflow: hidden;
+      border-left: 2px solid var(--violet);
+      border-radius: 4px;
+      background: rgba(169, 148, 255, .1);
+      color: #ded7fa;
+      font-size: 9px;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .month-event-color-1 {
+      border-left-color: var(--blue);
+      background: rgba(132, 184, 255, .1);
+      color: #d6e6ff;
+    }
+
+    .month-event-color-2 {
+      border-left-color: var(--mint);
+      background: rgba(116, 217, 179, .1);
+      color: #d5f5e8;
+    }
+
+    .month-event-color-3 {
+      border-left-color: var(--amber);
+      background: rgba(244, 199, 121, .1);
+      color: #f7ead1;
+    }
+
+    .month-event.is-done {
+      opacity: .55;
+      text-decoration: line-through;
+    }
+
+    .month-event-more {
+      padding: 1px 5px;
+      color: #9992b4;
+      font-size: 9px;
+      font-weight: 650;
+    }
+
+    .month-empty {
+      display: flex;
+      grid-column: 1 / -1;
+      align-items: center;
+      flex-direction: column;
+      gap: 10px;
+      margin: 8px 0;
+      padding: 14px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 9px;
+      color: #9198a5;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .month-view-hint {
+      margin: 13px 0 0;
+      color: #7e8693;
+      font-size: 10px;
+      text-align: right;
+    }
+
+    .calendar-event.is-done {
+      opacity: .57;
+      filter: saturate(.65);
+    }
+
+    .event-actions {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      display: flex;
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 8px;
+      background: rgba(12, 14, 19, .48);
+      opacity: 0;
+      transition: opacity .15s ease;
+    }
+
+    .calendar-event:hover .event-actions,
+    .calendar-event:focus-within .event-actions {
+      opacity: 1;
+    }
+
+    .event-actions .task-action {
+      width: 22px;
+      height: 22px;
+    }
+
+    .event-actions .task-action:disabled {
+      color: var(--mint);
+      opacity: 1;
+    }
+
+    .task-dialog {
+      width: min(440px, calc(100vw - 32px));
+      max-width: none;
+      padding: 22px;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      background: #171a20;
+      color: var(--text);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
+    }
+
+    .task-dialog::backdrop {
+      background: rgba(5, 6, 9, .72);
+      backdrop-filter: blur(4px);
+    }
+
+    .dialog-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .dialog-header .eyebrow {
+      margin-bottom: 5px;
+    }
+
+    .dialog-header h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 630;
+      letter-spacing: -.03em;
+    }
+
+    .dialog-close {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 19px;
+    }
+
+    .dialog-close:hover {
+      background: rgba(255, 255, 255, .06);
+      color: var(--text);
+    }
+
+    .dialog-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px;
+      gap: 12px;
+      margin-top: 13px;
+    }
+
+    .dialog-field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 7px;
+      color: #9ca3af;
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: .04em;
+    }
+
+    .dialog-field input {
+      width: 100%;
+      height: 39px;
+      padding: 0 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      outline: none;
+      background: #101217;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 450;
+      letter-spacing: 0;
+    }
+
+    .dialog-field input:focus {
+      border-color: rgba(169, 148, 255, .65);
+    }
+
+    .dialog-error {
+      margin: 12px 0 0;
+      color: #f0a0a0;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .dialog-error[hidden] {
+      display: none;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .dialog-button {
+      min-height: 35px;
+      padding: 0 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: #20242b;
+      color: #d2d6df;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .dialog-save {
+      border-color: transparent;
+      background: var(--violet);
+      color: #1a1724;
+    }
+
+    .dialog-save:hover {
+      background: #bdadff;
+    }
+
+    .dialog-button:disabled {
+      cursor: wait;
+      opacity: .55;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -739,6 +1350,523 @@
       clip: rect(0, 0, 0, 0);
       white-space: nowrap;
       border: 0;
+    }
+
+    .task-title-open {
+      display: block;
+      max-width: 100%;
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      line-height: inherit;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .task-title-open:hover {
+      color: #fff;
+    }
+
+    .task-title-open:focus-visible {
+      border-radius: 3px;
+      outline: 2px solid rgba(169, 148, 255, .72);
+      outline-offset: 2px;
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      z-index: 59;
+      inset: 0;
+      background: rgba(5, 7, 12, .55);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .22s ease, visibility .22s ease;
+      backdrop-filter: blur(2px);
+    }
+
+    .drawer-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .context-drawer {
+      position: fixed;
+      z-index: 60;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      width: min(440px, calc(100vw - 18px));
+      flex-direction: column;
+      overflow: hidden;
+      border-left: 1px solid rgba(169, 148, 255, .2);
+      background: linear-gradient(160deg, #171a21, #111318 70%);
+      box-shadow: -22px 0 65px rgba(0, 0, 0, .4);
+      transform: translateX(102%);
+      visibility: hidden;
+      transition: transform .24s ease, visibility .24s ease;
+    }
+
+    .context-drawer.is-open {
+      transform: translateX(0);
+      visibility: visible;
+    }
+
+    .context-drawer-header {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 25px 24px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .context-drawer-header .eyebrow {
+      margin-bottom: 7px;
+      color: var(--violet);
+    }
+
+    .context-drawer-header h2 {
+      max-width: 340px;
+      margin: 0;
+      overflow: hidden;
+      font-size: 19px;
+      font-weight: 630;
+      letter-spacing: -.035em;
+      text-overflow: ellipsis;
+    }
+
+    .context-task-meta {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .context-drawer-body {
+      min-height: 0;
+      flex: 1;
+      padding: 18px 24px 24px;
+      overflow: auto;
+      scrollbar-color: #343943 transparent;
+      scrollbar-width: thin;
+    }
+
+    .context-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 11px;
+      color: #dfe2e9;
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: .02em;
+    }
+
+    .context-section-title span:last-child {
+      color: var(--subtle);
+      font-size: 9px;
+      font-weight: 500;
+    }
+
+    .context-note-list {
+      display: grid;
+      gap: 9px;
+      margin-bottom: 22px;
+    }
+
+    .context-note-card,
+    .context-empty {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .025);
+    }
+
+    .context-note-card p {
+      margin: 0;
+      color: #d4d8e1;
+      font-size: 11px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .context-note-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .context-note-tag {
+      padding: 3px 7px;
+      border: 1px solid rgba(169, 148, 255, .19);
+      border-radius: 99px;
+      background: rgba(169, 148, 255, .075);
+      color: #c7baff;
+      font-size: 9px;
+    }
+
+    .context-empty {
+      color: #858c99;
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .context-note-form {
+      padding-top: 17px;
+      border-top: 1px solid var(--line);
+    }
+
+    .context-note-form .context-section-title {
+      margin-bottom: 14px;
+    }
+
+    .context-field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 13px;
+      color: #a8afbb;
+      font-size: 10px;
+      font-weight: 630;
+      letter-spacing: .035em;
+    }
+
+    .context-field textarea,
+    .context-field input {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      outline: none;
+      background: #101217;
+      color: var(--text);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 450;
+      letter-spacing: 0;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .context-field textarea {
+      min-height: 178px;
+      padding: 11px 12px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.55;
+    }
+
+    .context-field input {
+      height: 38px;
+      padding: 0 11px;
+    }
+
+    .context-field textarea:focus,
+    .context-field input:focus {
+      border-color: rgba(169, 148, 255, .62);
+      box-shadow: 0 0 0 3px rgba(169, 148, 255, .07);
+    }
+
+    .context-tags-hint {
+      margin: -2px 0 0;
+      color: var(--subtle);
+      font-size: 9px;
+      font-weight: 450;
+      letter-spacing: 0;
+    }
+
+    .context-note-status {
+      min-height: 17px;
+      margin: 1px 0 9px;
+      color: var(--mint);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .context-note-status.is-error {
+      color: #ed9a9a;
+    }
+
+    .context-save-button {
+      display: inline-flex;
+      min-height: 36px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--violet);
+      color: #171322;
+      font-size: 10px;
+      font-weight: 700;
+      transition: background .16s ease, transform .16s ease;
+    }
+
+    .context-save-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: #bdadff;
+    }
+
+    .context-save-button:disabled {
+      cursor: wait;
+      opacity: .58;
+    }
+
+    .ai-chat-launcher {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 15px;
+      border: 1px solid rgba(169, 148, 255, .36);
+      border-radius: 14px;
+      background: linear-gradient(145deg, #a994ff, #8671e2);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, .28), 0 0 0 4px rgba(169, 148, 255, .055);
+      color: #171322;
+      font-size: 11px;
+      font-weight: 720;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .ai-chat-launcher:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px rgba(0, 0, 0, .34), 0 0 0 4px rgba(169, 148, 255, .095);
+    }
+
+    .ai-chat-launcher[aria-expanded="true"] {
+      background: #c1b3ff;
+    }
+
+    .ai-chat-launcher svg {
+      flex: 0 0 auto;
+    }
+
+    .ai-chat-widget {
+      position: fixed;
+      z-index: 50;
+      right: 24px;
+      bottom: 22px;
+      display: flex;
+      align-items: flex-end;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ai-chat-panel {
+      display: flex;
+      width: min(370px, calc(100vw - 28px));
+      height: min(520px, calc(100dvh - 112px));
+      min-height: 300px;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid rgba(169, 148, 255, .2);
+      border-radius: 17px;
+      background: #15181e;
+      box-shadow: 0 20px 65px rgba(0, 0, 0, .42);
+      opacity: 0;
+      transform: translateY(9px) scale(.985);
+      transform-origin: bottom right;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+    }
+
+    .ai-chat-panel.is-open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .ai-chat-header {
+      display: flex;
+      min-height: 58px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .015);
+    }
+
+    .ai-chat-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ai-chat-mark {
+      display: grid;
+      width: 29px;
+      height: 29px;
+      place-items: center;
+      border: 1px solid rgba(169, 148, 255, .28);
+      border-radius: 9px;
+      background: rgba(169, 148, 255, .12);
+      color: #c5b8ff;
+    }
+
+    .ai-chat-brand-copy strong {
+      display: block;
+      color: #e8eaf0;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .ai-chat-brand-copy span {
+      display: block;
+      margin-top: 3px;
+      color: var(--subtle);
+      font-size: 9px;
+    }
+
+    .chat-close {
+      display: grid;
+      width: 29px;
+      height: 29px;
+      place-items: center;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: #969daa;
+      font-size: 17px;
+    }
+
+    .chat-close:hover {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, .045);
+      color: var(--text);
+    }
+
+    .chat-history {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+      gap: 11px;
+      padding: 15px 13px;
+      overflow-y: auto;
+      scrollbar-color: #343943 transparent;
+      scrollbar-width: thin;
+    }
+
+    .chat-message {
+      width: fit-content;
+      max-width: 88%;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #1a1e25;
+      color: #dfe2e9;
+    }
+
+    .chat-message--user {
+      align-self: flex-end;
+      border-color: rgba(169, 148, 255, .23);
+      border-bottom-right-radius: 4px;
+      background: rgba(169, 148, 255, .12);
+    }
+
+    .chat-message--assistant {
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-message-role {
+      display: block;
+      margin-bottom: 4px;
+      color: #a99aff;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .035em;
+    }
+
+    .chat-message--user .chat-message-role {
+      color: #c9bdff;
+    }
+
+    .chat-message-content {
+      margin: 0;
+      color: #dce0e8;
+      font-size: 11px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .chat-message.is-error .chat-message-role,
+    .chat-message.is-error .chat-message-content {
+      color: #ed9a9a;
+    }
+
+    .chat-message.is-thinking .chat-message-content {
+      color: #9991b1;
+      font-style: italic;
+    }
+
+    .chat-composer {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 8px;
+      padding: 11px;
+      border-top: 1px solid var(--line);
+      background: #12151a;
+    }
+
+    .chat-input {
+      width: 100%;
+      height: 39px;
+      min-width: 0;
+      padding: 0 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      outline: none;
+      background: #0f1116;
+      color: var(--text);
+      font-size: 11px;
+    }
+
+    .chat-input:focus {
+      border-color: rgba(169, 148, 255, .6);
+    }
+
+    .chat-input::placeholder {
+      color: #717987;
+    }
+
+    .chat-send-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 0;
+      border-radius: 9px;
+      background: var(--violet);
+      color: #171322;
+      transition: background .16s ease, opacity .16s ease;
+    }
+
+    .chat-send-button:hover:not(:disabled) {
+      background: #bdadff;
+    }
+
+    .chat-send-button:disabled,
+    .chat-input:disabled {
+      cursor: wait;
+      opacity: .56;
     }
 
     @media (max-width: 900px) {
@@ -756,6 +1884,10 @@
       .schedule-title h1 {
         flex-wrap: wrap;
         gap: 5px 10px;
+      }
+
+      .date-controls {
+        gap: 6px;
       }
     }
 
@@ -797,7 +1929,30 @@
 
       .schedule-toolbar {
         min-height: 100px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 12px;
         padding: 20px 18px 17px;
+      }
+
+      .schedule-title {
+        width: 100%;
+      }
+
+      .date-controls {
+        width: 100%;
+        justify-content: space-between;
+        gap: 4px;
+      }
+
+      .calendar-view-switch {
+        height: 32px;
+      }
+
+      .calendar-view-button {
+        min-width: 38px;
+        height: 24px;
+        padding: 0 6px;
       }
 
       .schedule-scroll {
@@ -816,11 +1971,96 @@
         margin-left: 66px;
       }
 
+      .month-weekdays,
+      .month-grid {
+        gap: 3px;
+      }
+
+      .month-weekdays span {
+        padding: 3px 2px;
+        font-size: 8px;
+        letter-spacing: .04em;
+        text-align: center;
+      }
+
+      .month-grid {
+        grid-auto-rows: minmax(82px, auto);
+      }
+
+      .month-day {
+        padding: 5px 4px;
+        border-radius: 7px;
+      }
+
+      .month-day-number {
+        width: 21px;
+        height: 21px;
+        font-size: 9px;
+      }
+
+      .month-day-events {
+        gap: 2px;
+        margin-top: 3px;
+      }
+
+      .month-event {
+        padding: 3px 3px;
+        border-left-width: 1px;
+        font-size: 8px;
+      }
+
+      .month-view-hint {
+        font-size: 9px;
+      }
+
       .calendar-event {
         right: 8px;
         left: 9px;
         padding-right: 8px;
         padding-left: 10px;
+      }
+
+      .app-shell.focus-mode {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(620px, 1fr);
+      }
+
+      .app-shell.focus-mode .inbox-pane {
+        display: none;
+      }
+
+      .app-shell.focus-mode .schedule-pane {
+        grid-column: 1;
+      }
+
+      .context-drawer {
+        width: min(440px, 100vw);
+      }
+
+      .context-drawer-header {
+        padding: 20px 18px 15px;
+      }
+
+      .context-drawer-body {
+        padding: 16px 18px 22px;
+      }
+
+      .ai-chat-widget {
+        right: 12px;
+        bottom: 12px;
+      }
+
+      .ai-chat-panel {
+        width: calc(100vw - 24px);
+        height: min(520px, calc(100dvh - 86px));
+        min-height: min(260px, calc(100dvh - 86px));
+      }
+    }
+
+    @media (hover: none) {
+      .inbox-task .task-actions .task-action,
+      .event-actions {
+        opacity: 1;
       }
     }
 
@@ -871,6 +2111,27 @@
         </button>
       </div>
 
+      <div class="quick-options" aria-label="Task details">
+        <label class="quick-field" for="quick-category">
+          <span>Category</span>
+          <input id="quick-category" type="text" list="category-suggestions" value="General" maxlength="40">
+        </label>
+        <label class="quick-field quick-minutes-field" for="quick-minutes">
+          <span>Estimate</span>
+          <span class="minutes-input-wrap">
+            <input id="quick-minutes" type="number" min="1" max="1440" step="5" value="30">
+            <span>min</span>
+          </span>
+        </label>
+      </div>
+      <datalist id="category-suggestions">
+        <option value="General"></option>
+        <option value="Work"></option>
+        <option value="Personal"></option>
+        <option value="Team"></option>
+        <option value="Home"></option>
+      </datalist>
+
       <div class="entry-actions">
         <span class="entry-hint">↵ Enter to add</span>
         <button class="ai-button" id="ai-assist" type="button">
@@ -885,7 +2146,7 @@
 
       <div class="list-heading">
         <span>Unassigned tasks</span>
-        <span>Newest first</span>
+        <span>Hover for actions</span>
       </div>
 
       <ul class="inbox-list" id="inbox-list" aria-label="Unassigned tasks"></ul>
@@ -898,10 +2159,21 @@
     <section class="schedule-pane" aria-labelledby="schedule-title">
       <header class="schedule-toolbar">
         <div class="schedule-title">
-          <p class="eyebrow">My day</p>
+          <p class="eyebrow" id="schedule-eyebrow">My day</p>
           <h1 id="schedule-title"><span class="day-label" id="day-label">Today</span><span class="day-date" id="schedule-date"></span></h1>
         </div>
         <nav class="date-controls" aria-label="Schedule date controls">
+          <button class="focus-button" id="focus-toggle" type="button" aria-pressed="false">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2.2 8s2.1-3.6 5.8-3.6S13.8 8 13.8 8s-2.1 3.6-5.8 3.6S2.2 8 2.2 8Z" stroke="currentColor" stroke-width="1.25"/>
+              <circle cx="8" cy="8" r="1.6" stroke="currentColor" stroke-width="1.25"/>
+            </svg>
+            <span id="focus-label">Focus</span>
+          </button>
+          <div class="calendar-view-switch" role="group" aria-label="Calendar view">
+            <button class="calendar-view-button" id="day-view-toggle" type="button" aria-pressed="true">Day</button>
+            <button class="calendar-view-button" id="month-view-toggle" type="button" aria-pressed="false">Month</button>
+          </div>
           <button class="today-button" id="today-button" type="button">Today</button>
           <button class="nav-button" id="previous-day" type="button" aria-label="Previous day">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -917,6 +2189,7 @@
       </header>
 
       <div class="schedule-scroll">
+        <section class="day-calendar-view" id="day-view" aria-label="Day schedule">
         <div class="timeline-heading">
           <span>Daily timeline</span>
           <span class="day-length">12 HOURS</span>
@@ -940,6 +2213,9 @@
           </div>
 
           <div class="day-grid" id="day-grid" aria-label="Scheduled tasks">
+            <div class="drop-indicator" id="drop-indicator" hidden>
+              <span class="drop-time-label" id="drop-time-label"></span>
+            </div>
             <div class="hour-row"></div>
             <div class="hour-row"></div>
             <div class="hour-row"></div>
@@ -964,9 +2240,136 @@
           </svg>
           <span>Leave a little room between tasks. Your day doesn't need to be completely full.</span>
         </div>
+      </section>
+
+      <section class="month-calendar-view" id="month-view" aria-label="Month calendar" hidden>
+        <div class="month-weekdays" aria-hidden="true">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div class="month-grid" id="month-grid" aria-label="Days of the selected month"></div>
+        <p class="month-view-hint">Select a date to open its day schedule.</p>
+      </section>
       </div>
     </section>
   </main>
+
+  <div class="drawer-backdrop" id="context-backdrop" aria-hidden="true"></div>
+  <aside class="context-drawer" id="context-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="context-task-title" inert>
+    <header class="context-drawer-header">
+      <div>
+        <p class="eyebrow">Second Brain · Task context</p>
+        <h2 id="context-task-title">Task context</h2>
+        <p class="context-task-meta" id="context-task-meta"></p>
+      </div>
+      <button class="dialog-close" id="context-close" type="button" aria-label="Close task context">×</button>
+    </header>
+    <div class="context-drawer-body">
+      <section aria-labelledby="context-notes-heading">
+        <h3 class="context-section-title" id="context-notes-heading">
+          <span>Linked notes</span>
+          <span id="context-note-count">0 notes</span>
+        </h3>
+        <div class="context-note-list" id="context-note-list" aria-live="polite">
+          <p class="context-empty">Choose a task to see its notes.</p>
+        </div>
+      </section>
+
+      <form class="context-note-form" id="context-note-form">
+        <h3 class="context-section-title"><span>Capture a thought</span><span>Markdown</span></h3>
+        <label class="context-field" for="context-note-content">
+          <span>Note</span>
+          <textarea id="context-note-content" rows="8" required placeholder="## A useful thought, decision, or reference…"></textarea>
+        </label>
+        <label class="context-field" for="context-note-tags">
+          <span>#Tags</span>
+          <input id="context-note-tags" type="text" placeholder="#research, #ideas, #project">
+          <span class="context-tags-hint">Separate tags with commas.</span>
+        </label>
+        <p class="context-note-status" id="context-note-status" role="status" aria-live="polite"></p>
+        <button class="context-save-button" id="context-save-note" type="submit">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          Save note to task
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="ai-chat-widget" id="ai-chat-widget">
+    <section class="ai-chat-panel" id="ai-chat-panel" role="dialog" aria-labelledby="ai-chat-title" aria-hidden="true">
+      <header class="ai-chat-header">
+        <div class="ai-chat-brand">
+          <span class="ai-chat-mark" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path d="m8 1.6 1.25 4.05L13.3 7 9.25 8.3 8 12.4 6.75 8.3 2.7 7l4.05-1.35L8 1.6Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+              <path d="m12.2 10.5.55 1.4 1.4.55-1.4.55-.55 1.4-.55-1.4-1.4-.55 1.4-.55.55-1.4Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <div class="ai-chat-brand-copy">
+            <strong id="ai-chat-title">Dayframe AI</strong>
+            <span>Local assistant</span>
+          </div>
+        </div>
+        <button class="chat-close" id="chat-close" type="button" aria-label="Close AI chat">×</button>
+      </header>
+      <div class="chat-history" id="chat-messages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Chat messages">
+        <article class="chat-message chat-message--assistant">
+          <span class="chat-message-role">DAYFRAME AI</span>
+          <p class="chat-message-content">Hi — ask me to help organize your tasks or think through your day.</p>
+        </article>
+      </div>
+      <form class="chat-composer" id="chat-form">
+        <label class="sr-only" for="chat-input">Message the AI assistant</label>
+        <input class="chat-input" id="chat-input" type="text" autocomplete="off" placeholder="Write a message…" required>
+        <button class="chat-send-button" id="chat-send" type="submit" aria-label="Send message">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 8 14 2.5 10.2 13.5 7.8 8.2 2 8Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+            <path d="m7.8 8.2 3.4-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </form>
+    </section>
+    <button class="ai-chat-launcher" id="chat-toggle" type="button" aria-expanded="false" aria-controls="ai-chat-panel" aria-label="Open AI chat">
+      <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M3 4.2h12v8.1H8l-3.5 2.4v-2.4H3V4.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M6 7h6M6 9.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>AI Chat</span>
+    </button>
+  </div>
+
+  <dialog class="task-dialog" id="task-editor" aria-labelledby="editor-title">
+    <form id="task-edit-form">
+      <header class="dialog-header">
+        <div>
+          <p class="eyebrow">Task details</p>
+          <h2 id="editor-title">Edit task</h2>
+        </div>
+        <button class="dialog-close" id="close-editor" type="button" aria-label="Close editor">×</button>
+      </header>
+      <label class="dialog-field" for="edit-title">
+        <span>Title</span>
+        <input id="edit-title" type="text" required maxlength="160">
+      </label>
+      <div class="dialog-row">
+        <label class="dialog-field" for="edit-category">
+          <span>Category</span>
+          <input id="edit-category" type="text" list="category-suggestions" required maxlength="40">
+        </label>
+        <label class="dialog-field" for="edit-minutes">
+          <span>Estimate (minutes)</span>
+          <input id="edit-minutes" type="number" min="1" max="1440" step="5" required>
+        </label>
+      </div>
+      <p class="dialog-error" id="edit-error" role="alert" hidden></p>
+      <footer class="dialog-actions">
+        <button class="dialog-button dialog-cancel" id="cancel-edit" type="button">Cancel</button>
+        <button class="dialog-button dialog-save" id="save-edit" type="submit">Save changes</button>
+      </footer>
+    </form>
+  </dialog>
+
   <script src="./app.js" defer></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
-# Day_Frame — Local Task Manager Backend
+# Local Task Manager Backend
 
-A modular FastAPI backend backed by Python's built-in `sqlite3` module, with an optional Ollama agent. The database is named `productivity.db` and is created in this project directory by default. By default, prompts and task data go only to the local Ollama endpoint at `localhost`; setting `OLLAMA_URL` to another host is an explicit configuration choice.
+A modular FastAPI backend backed by Python's built-in `sqlite3` module, with an optional Ollama agent and a Markdown “Second Brain” notes store. The database is named `productivity.db` and is created in this project directory by default. By default, prompts and task data go only to the local Ollama endpoint at `localhost`; setting `OLLAMA_URL` to another host is an explicit configuration choice.
 
 ## Project structure
 
@@ -11,15 +11,19 @@ task_management_backend/
 │   ├── main.py                     # FastAPI application and startup lifecycle
 │   ├── schemas.py                  # Pydantic request/response models
 │   ├── repositories/
-│   │   └── task_repository.py      # SQL queries, separate from routes/services
+│   │   ├── note_repository.py      # Notes and task-note relationship queries
+│   │   └── task_repository.py      # Task SQL queries, separate from routes/services
 │   ├── routes/
 │   │   ├── agent.py                # POST /api/agent
+│   │   ├── notes.py                # Notes, links, and task context endpoints
 │   │   └── tasks.py                # Task REST endpoints
 │   └── services/
 │       └── agent.py                # Ollama request, tool schemas, tool-call loop
 ├── frontend/
 │   ├── index.html                  # Dark-mode productivity UI
 │   └── app.js                      # Vanilla JS API integration
+├── tests/
+│   └── test_notes_api.py           # Second Brain API and migration tests
 ├── init_db.py                      # Standalone database initialization script
 └── requirements.txt
 ```
@@ -80,6 +84,80 @@ Updates both `status` and `scheduled_start`. Include both fields; use an ISO 860
 
 A nonexistent task returns HTTP `404 Not Found`.
 
+The same task endpoints are also available under `/api/tasks` as a compatibility alias. The alias is used by the UI's drag-and-drop scheduler; it is intentionally omitted from the generated OpenAPI schema to avoid duplicate documentation.
+
+### `PATCH /tasks/{task_id}`
+
+Partially edits a task's title, category, and/or estimate. For example:
+
+```json
+{
+  "title": "Review the revised project brief",
+  "estimated_minutes": 45
+}
+```
+
+### `DELETE /tasks/{task_id}`
+
+Permanently deletes a task and returns HTTP `204 No Content`. Missing task ids return `404`.
+
+## Second Brain notes
+
+Notes are Markdown text with a comma-separated `tags` string. SQLite creates `id` and `created_at`; omitted tags default to an empty string. The `task_notes` junction table has a unique `(task_id, note_id)` primary key and foreign keys with `ON DELETE CASCADE`, so either side can be associated with multiple records and duplicate links are prevented.
+
+### `POST /notes`
+
+Create a note. Markdown content is preserved; tags are normalized as comma-separated values.
+
+```json
+{
+  "content": "## Useful idea\n\nA note in Markdown.",
+  "tags": "research, product"
+}
+```
+
+Returns the created note with HTTP `201 Created`.
+
+### `GET /notes` and `GET /notes/{note_id}`
+
+List notes (newest first) or fetch a single note. A missing note returns `404`.
+
+### `PUT /tasks/{task_id}/notes/{note_id}`
+
+Idempotently link an existing note to an existing task. The response contains `task_id` and `note_id`; a missing task or note returns `404`.
+
+### `GET /tasks/{task_id}/context`
+
+Return the task details and all its linked notes. The `notes` array is empty when there are no links; a missing task returns `404`.
+
+```json
+{
+  "task": {
+    "id": 17,
+    "title": "Prepare literature review",
+    "category": "Research",
+    "estimated_minutes": 30,
+    "status": "inbox",
+    "scheduled_start": null,
+    "created_at": "2026-10-08T10:30:00"
+  },
+  "notes": [
+    {
+      "id": 4,
+      "content": "## Useful idea\n\nA note in Markdown.",
+      "tags": "research, product",
+      "created_at": "2026-10-08T10:32:00"
+    }
+  ]
+}
+```
+
+### `GET /notes/{note_id}/tasks`
+
+Return the tasks linked to a note (the reverse lookup for the many-to-many relationship).
+
+The same notes and context routes are also available under `/api/notes` and `/api/tasks` as hidden compatibility aliases. Run the integration tests with `python -m unittest discover -s tests -v`.
+
 ## Local Ollama agent
 
 Start Ollama and make a tool-capable model available. The default model is `llama3.1`:
@@ -134,4 +212,8 @@ The service appends Ollama's assistant tool-call message, executes each SQLite o
 
 ## Static UI layout
 
-`frontend/index.html` provides the dark-mode 30% inbox / 70% schedule layout and `frontend/app.js` connects it to the API. The app loads inbox tasks from `GET /tasks?status=inbox`, creates quick-entry tasks with `POST /tasks`, and sends AI Assist prompts to `POST /api/agent`. After AI Assist completes, it reloads both the inbox and all tasks, then renders scheduled tasks for the selected local day on the 8:00 AM–8:00 PM timeline. Rapid-entry tasks use category `General` and an estimate of 30 minutes by default; change `DEFAULT_TASK_CATEGORY` or `DEFAULT_ESTIMATED_MINUTES` in `app.js` to adjust those values.
+`frontend/index.html` provides the dark-mode 30% inbox / 70% schedule layout and `frontend/app.js` connects it to the API. The UI supports task completion, editing details with `PATCH`, confirmed deletion, and quick-entry category/estimate fields. AI Assist posts to `POST /api/agent`; after it completes, the app refreshes both the inbox and schedule. Scheduled tasks are rendered for the selected local day on the 8:00 AM–8:00 PM timeline. Quick-entry defaults are `General` and 30 minutes, both editable before saving.
+
+Use the **Focus** button to hide the inbox and expand the schedule; click it again to restore the two-pane layout. Inbox cards can be dragged onto the schedule. The drop indicator previews a start time snapped to 15-minute increments, and the drop persists the task as scheduled with `PUT /api/tasks/{task_id}`. The chosen start is kept within the workday based on the task's estimate. If the save fails, the optimistic schedule change is rolled back and an error is shown.
+
+The calendar has **Day** and **Month** views. The month grid shows scheduled items by date; use the arrows to move by a day or month, and select a date to open its day timeline. The floating **AI Chat** panel toggles from the bottom-right corner and sends messages to `/api/agent`; message history remains in the open page session. Click a task card or title to open the sliding **Second Brain** drawer. It shows linked notes and lets you save Markdown content with comma-separated `#tags` to that task.
