@@ -10,6 +10,7 @@ from app.database import initialize_database
 from app.routes.agent import router as agent_router
 from app.routes.notes import router as notes_router
 from app.routes.tasks import router as tasks_router
+from app.routes.timetable import router as timetable_router
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ app = FastAPI(
 app.include_router(tasks_router)
 app.include_router(agent_router)
 app.include_router(notes_router)
+app.include_router(timetable_router)
 # Compatibility aliases for clients that group API routes under /api.
 app.include_router(tasks_router, prefix="/api", include_in_schema=False)
 app.include_router(notes_router, prefix="/api", include_in_schema=False)

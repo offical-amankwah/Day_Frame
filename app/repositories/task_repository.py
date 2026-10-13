@@ -99,6 +99,46 @@ def create_task(title: str, category: str, estimated_minutes: int) -> TaskRecord
         connection.close()
 
 
+def create_scheduled_tasks(
+    events: list[dict[str, Any]], category: str = "Timetable"
+) -> list[TaskRecord]:
+    """Atomically insert extracted events with scheduled status and start times."""
+    if not events:
+        return []
+
+    connection = get_connection()
+    created_tasks: list[TaskRecord] = []
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        for event in events:
+            cursor = connection.execute(
+                "INSERT INTO tasks (title, category, estimated_minutes, status, scheduled_start) "
+                "VALUES (?, ?, ?, 'scheduled', ?)",
+                (
+                    event["title"],
+                    category,
+                    event["estimated_minutes"],
+                    event["scheduled_start"],
+                ),
+            )
+            row = connection.execute(
+                "SELECT id, title, category, estimated_minutes, status, "
+                "scheduled_start, created_at FROM tasks WHERE id = ?",
+                (cursor.lastrowid,),
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("Inserted timetable task could not be read back")
+            created_tasks.append(_row_to_dict(row))
+        connection.commit()
+        return created_tasks
+    except Exception:
+        if connection.in_transaction:
+            connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def update_task(
     task_id: int, status: str, scheduled_start: str | None
 ) -> TaskRecord | None:

@@ -324,20 +324,22 @@ async function sendChatMessage(event) {
       method: "POST",
       body: JSON.stringify({ prompt }),
     });
-    pending.content.textContent = result?.response || "The assistant completed your request.";
-    pending.message.classList.remove("is-thinking");
-    if (Array.isArray(result?.tool_calls) && result.tool_calls.length) {
-      try {
-        await refreshViews();
-      } catch (error) {
-        setAppStatus(`AI replied, but task views could not refresh: ${error.message}`, true);
-      }
+    const answer = result?.response || "The assistant completed your request.";
+    pending.message.remove();
+    appendChatMessage("assistant", answer);
+
+    const refreshResults = await Promise.allSettled([fetchInbox(), fetchSchedule()]);
+    const refreshErrors = refreshResults
+      .filter((outcome) => outcome.status === "rejected")
+      .map((outcome) => outcome.reason?.message || "A task view could not refresh.");
+    if (refreshErrors.length) {
+      setAppStatus(`AI replied, but task views could not refresh: ${refreshErrors.join(" ")}`, true);
     }
   } catch (error) {
-    pending.content.textContent = `I couldn't reach the assistant: ${error.message}`;
-    pending.message.classList.remove("is-thinking");
-    pending.message.classList.add("is-error");
-  } finally {
+    pending.message.remove();
+    appendChatMessage("assistant", `I couldn't reach the assistant: ${error.message}`, "is-error");
+  } finally { 
+
     chatRequestInProgress = false;
     chatInput.disabled = false;
     chatSendButton.disabled = false;
@@ -1182,6 +1184,12 @@ function initializeApp() {
     setChatPanelOpen(shouldOpen);
   });
   chatCloseButton.addEventListener("click", () => setChatPanelOpen(false));
+  chatInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.isComposing) {
+      event.preventDefault();
+      chatForm.requestSubmit();
+    }
+  });
   chatForm.addEventListener("submit", (event) => void sendChatMessage(event));
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

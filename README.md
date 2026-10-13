@@ -1,6 +1,6 @@
 # Local Task Manager Backend
 
-A modular FastAPI backend backed by Python's built-in `sqlite3` module, with an optional Ollama agent and a Markdown “Second Brain” notes store. The database is named `productivity.db` and is created in this project directory by default. By default, prompts and task data go only to the local Ollama endpoint at `localhost`; setting `OLLAMA_URL` to another host is an explicit configuration choice.
+A modular FastAPI backend backed by Python's built-in `sqlite3` module, with an Ollama agent, image-based timetable extraction, and a Markdown “Second Brain” notes store. The database is named `productivity.db` and is created in this project directory by default. By default, prompts and task data go only to the local Ollama endpoint at `localhost`; setting `OLLAMA_URL` to another host is an explicit configuration choice.
 
 ## Project structure
 
@@ -16,14 +16,18 @@ task_management_backend/
 │   ├── routes/
 │   │   ├── agent.py                # POST /api/agent
 │   │   ├── notes.py                # Notes, links, and task context endpoints
-│   │   └── tasks.py                # Task REST endpoints
+│   │   ├── tasks.py                # Task REST endpoints
+│   │   └── timetable.py            # POST /api/extract-timetable
 │   └── services/
-│       └── agent.py                # Ollama request, tool schemas, tool-call loop
+│       ├── agent.py                # Ollama request, tool schemas, tool-call loop
+│       └── timetable_extractor.py  # Ollama vision extraction and validation
 ├── frontend/
 │   ├── index.html                  # Dark-mode productivity UI
 │   └── app.js                      # Vanilla JS API integration
 ├── tests/
-│   └── test_notes_api.py           # Second Brain API and migration tests
+│   ├── test_notes_api.py           # Second Brain API and migration tests
+│   ├── test_timetable_api.py       # Timetable upload and task persistence tests
+│   └── test_timetable_extractor.py # Ollama vision request and parser tests
 ├── init_db.py                      # Standalone database initialization script
 └── requirements.txt
 ```
@@ -100,6 +104,40 @@ Partially edits a task's title, category, and/or estimate. For example:
 ### `DELETE /tasks/{task_id}`
 
 Permanently deletes a task and returns HTTP `204 No Content`. Missing task ids return `404`.
+
+## Timetable image extraction
+
+### `POST /api/extract-timetable`
+
+Accepts a multipart form upload with an image field named `file`. The backend Base64-encodes the image, sends it to the configured local Ollama vision model, validates the returned JSON array, and saves each event in SQLite with status `scheduled` and category `Timetable`. It returns the created task records with HTTP `201 Created`; if the image contains no events, the response is an empty array.
+
+```bash
+curl -X POST http://localhost:8000/api/extract-timetable  \
+  -F "file=@weekly-timetable.png;type=image/png"
+```
+
+The model is instructed with this prompt:
+
+> Extract all scheduled events, classes, or meetings from this timetable image. Return the result strictly as a JSON array where each object has a 'title', 'estimated_minutes', and 'scheduled_start' (in ISO 8601 format).
+
+For example, the response is an array of normal task records:
+
+```json
+[
+  {
+    "id": 21,
+    "title": "Project planning",
+    "category": "Timetable",
+    "estimated_minutes": 45,
+    "status": "scheduled",
+    "scheduled_start": "2026-10-14T09:30:00",
+    "created_at": "2026-10-13T12:00:00"
+  }
+]
+```
+
+Ollama must be running with an image-capable model available. The default vision model is `llava`; download it with `ollama pull llava`. Configure it with `OLLAMA_VISION_MODEL`. The endpoint uses `OLLAMA_URL` (default `http://localhost:11434/api/chat`) and `OLLAMA_TIMEOUT_SECONDS` (default `120`), shared with the chat agent. Uploads must have an `image/*` content type and are limited to 20 MiB by default; set `MAX_TIMETABLE_IMAGE_BYTES` to change that limit. Empty uploads return `400`, unsupported media types return `415`, oversized uploads return `413`, and Ollama/extraction errors (including unreadable image data) return `502`.
+
 
 ## Second Brain notes
 
