@@ -60,6 +60,7 @@ const chatMessages = document.getElementById("chat-messages");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const chatSendButton = document.getElementById("chat-send");
+const timetableDropzone = document.getElementById("timetable-dropzone");
 
 let selectedDate = startOfDay(new Date());
 let currentCalendarView = "day";
@@ -73,6 +74,7 @@ let contextReturnFocus = null;
 let contextRequestId = 0;
 let contextNoteSaving = false;
 let chatRequestInProgress = false;
+let fileDragDepth = 0;
 const DROP_SNAP_MINUTES = 15;
 
 function startOfDay(date) {
@@ -114,7 +116,8 @@ function describeApiError(detail, statusCode) {
 async function apiRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set("Accept", "application/json");
-  if (options.body && !headers.has("Content-Type")) {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (options.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -947,6 +950,105 @@ async function refreshViews() {
   if (failures.length) throw new Error(failures.join(" "));
 }
 
+function setTimetableDropzoneVisible(isVisible) {
+  timetableDropzone.hidden = !isVisible;
+  timetableDropzone.setAttribute("aria-hidden", String(!isVisible));
+}
+
+function dragHasFiles(event) {
+  const transfer = event.dataTransfer;
+  if (!transfer) return false;
+  const types = Array.from(transfer.types || []);
+  return types.includes("Files") || Boolean(transfer.files?.length);
+}
+
+function handleWindowDragEnter(event) {
+  if (!dragHasFiles(event)) return;
+  event.preventDefault();
+  fileDragDepth += 1;
+  setTimetableDropzoneVisible(true);
+}
+
+function handleWindowDragOver(event) {
+  if (!dragHasFiles(event)) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+  setTimetableDropzoneVisible(true);
+}
+
+function handleWindowDragLeave(event) {
+  if (!dragHasFiles(event)) return;
+  event.preventDefault();
+  fileDragDepth = Math.max(0, fileDragDepth - 1);
+  if (fileDragDepth === 0) setTimetableDropzoneVisible(false);
+}
+
+function handleWindowDrop(event) {
+  if (!dragHasFiles(event)) return;
+  event.preventDefault();
+  fileDragDepth = 0;
+  setTimetableDropzoneVisible(false);
+
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) {
+    setAppStatus("No file was received. Drop a timetable image to import it.", true);
+    return;
+  }
+  if (!String(file.type || "").toLowerCase().startsWith("image/")) {
+    setAppStatus("Please drop an image file to extract a timetable.", true);
+    return;
+  }
+  void extractTimetableImage(file);
+}
+
+async function extractTimetableImage(file) {
+  if (actionInProgress) {
+    setAppStatus("Finish the current action before importing a timetable.", true);
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file, file.name || "timetable-image");
+  let extracted = false;
+  setBusy(true);
+  setAppStatus("Reading timetable...");
+  try {
+    const createdTasks = await apiRequest("/api/extract-timetable", {
+      method: "POST",
+      body: formData,
+    });
+    if (!Array.isArray(createdTasks)) {
+      throw new Error("The API returned an invalid timetable response.");
+    }
+    extracted = true;
+
+    const firstEventStart = createdTasks
+      .map((task) => parseTaskDateTime(task?.scheduled_start))
+      .filter(Boolean)
+      .sort((left, right) => left - right)[0];
+    if (firstEventStart) {
+      selectedDate = startOfDay(firstEventStart);
+      setCalendarView("day");
+    }
+
+    await fetchSchedule();
+    setAppStatus(
+      createdTasks.length
+        ? `Added ${createdTasks.length} timetable ${createdTasks.length === 1 ? "event" : "events"} to your schedule.`
+        : "No scheduled events were found in that timetable.",
+    );
+  } catch (error) {
+    setAppStatus(
+      extracted
+        ? `Timetable extracted, but the schedule could not refresh: ${error.message}`
+        : `Could not extract timetable: ${error.message}`,
+      true,
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
 async function createInboxTask() {
   if (actionInProgress) return;
   const title = taskInput.value.trim();
@@ -1232,6 +1334,10 @@ function initializeApp() {
   dayGrid.addEventListener("dragleave", (event) => {
     if (!dayGrid.contains(event.relatedTarget)) clearDropIndicator();
   });
+  window.addEventListener("dragenter", handleWindowDragEnter);
+  window.addEventListener("dragover", handleWindowDragOver);
+  window.addEventListener("dragleave", handleWindowDragLeave);
+  window.addEventListener("drop", handleWindowDrop);
   document.getElementById("close-editor").addEventListener("click", () => taskEditor.close());
   document.getElementById("cancel-edit").addEventListener("click", () => taskEditor.close());
 

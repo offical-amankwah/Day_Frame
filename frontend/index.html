@@ -45,6 +45,7 @@
     }
 
     body {
+      position: relative;
       min-width: 360px;
       font-size: 14px;
     }
@@ -877,6 +878,72 @@
 
     .inbox-task.is-dragging {
       opacity: .35;
+    }
+
+    .timetable-dropzone {
+      position: absolute;
+      z-index: 10000;
+      inset: 16px;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      border: 2px dashed rgba(169, 148, 255, .78);
+      border-radius: 22px;
+      background: rgba(12, 14, 20, .72);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .035), 0 24px 80px rgba(0, 0, 0, .42);
+      -webkit-backdrop-filter: blur(9px);
+      backdrop-filter: blur(9px);
+      pointer-events: none;
+    }
+
+    .timetable-dropzone[hidden] {
+      display: none;
+    }
+
+    .timetable-dropzone-content {
+      display: flex;
+      width: min(460px, 100%);
+      min-height: 265px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      border-radius: 18px;
+      background: rgba(24, 26, 36, .62);
+      text-align: center;
+    }
+
+    .timetable-dropzone-icon {
+      display: grid;
+      width: 58px;
+      height: 58px;
+      place-items: center;
+      margin-bottom: 18px;
+      border: 1px solid rgba(169, 148, 255, .34);
+      border-radius: 18px;
+      background: rgba(169, 148, 255, .12);
+      color: #c5b8ff;
+    }
+
+    .timetable-dropzone-content .eyebrow {
+      margin-bottom: 8px;
+      color: #c0b2ff;
+    }
+
+    .timetable-dropzone-content h2 {
+      margin: 0 0 9px;
+      color: #f2efff;
+      font-size: clamp(21px, 4vw, 29px);
+      font-weight: 650;
+      letter-spacing: -.035em;
+    }
+
+    .timetable-dropzone-content p:last-child {
+      max-width: 320px;
+      margin: 0;
+      color: #aab0bc;
+      font-size: 12px;
+      line-height: 1.6;
     }
 
     .calendar-event {
@@ -2253,6 +2320,19 @@
     </section>
   </main>
 
+  <div class="timetable-dropzone" id="timetable-dropzone" aria-hidden="true" hidden>
+    <div class="timetable-dropzone-content" role="status" aria-live="polite">
+      <span class="timetable-dropzone-icon" aria-hidden="true">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+          <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <p class="eyebrow">AI timetable import</p>
+      <h2>Drop your timetable image</h2>
+      <p>Release to extract classes, meetings, and other scheduled events.</p>
+    </div>
+  </div>
+
   <div class="drawer-backdrop" id="context-backdrop" aria-hidden="true"></div>
   <aside class="context-drawer" id="context-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="context-task-title" inert>
     <header class="context-drawer-header">
@@ -2371,5 +2451,6 @@
   </dialog>
 
   <script src="./app.js" defer></script>
-</body>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a49e02ae6c92246a',t:'MTc5MTg5MTAwNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
